@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+
+  processor:
+    container_name: gradio
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    volumes:
+      - ./app:/app
+    ports:
+      - ${GRADIO_SERVER_PORT}:${GRADIO_SERVER_PORT}
+    # expose:
+    #   - ${GRADIO_SERVER_PORT}:${GRADIO_SERVER_PORT}
+    env_file: .env
+  
+networks:
+  default:
+      driver: bridge
+      name: homework-app
+
