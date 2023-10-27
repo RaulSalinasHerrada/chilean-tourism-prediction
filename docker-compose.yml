@@ -3,7 +3,7 @@ version: '3'
 services:
 
   processor:
-    container_name: gradio
+    container_name: gradio-tourism
     build:
       context: ./app
       dockerfile: Dockerfile
@@ -18,5 +18,5 @@ services:
 networks:
   default:
       driver: bridge
-      name: homework-app
+      name: tourism-app
 

@@ -97,8 +97,6 @@ def preprocess_data(data: pd.DataFrame, sector: Sector = Sector.Region) -> pd.Da
     data_agg.set_index("time_stamp", inplace=True)
     data_agg = data_agg.to_period("M")
     
-    
-    
     renamer = {
     data_agg.columns[0]: "sector_origin",
     data_agg.columns[1]: "sector_destiny"
@@ -209,17 +207,16 @@ def create_plot(
     
     return fig
 
-def save(object, path:str):
+def save_object(object, path:str):
     with open(path, "wb") as file:
         pkl.dump(object, file)
 
-def load(path: str):
+def load_object(path: str):
     with open(path, "rb") as file:
         return pkl.load(file)
 
 
 def run(argv = None):
-    
     
     path_preprocessed = "./data/data_preprocessed.pkl"
     path_forecaster = "./data/forecaster.pkl"
@@ -227,16 +224,16 @@ def run(argv = None):
     if not os.path.exists(path_preprocessed):
         data = load_data()
         data_preprocessed = preprocess_data(data)
-        save(data_preprocessed, path_preprocessed)
+        save_object(data_preprocessed, path_preprocessed)
     else: 
-        data_preprocessed = load(path_preprocessed)
+        data_preprocessed = load_object(path_preprocessed)
     
     if not os.path.exists(path_forecaster):
         forecaster = predict_dataframe(data_preprocessed)
-        save(forecaster, path_forecaster)
+        save_object(forecaster, path_forecaster)
     else: 
         
-        forecaster = load(path_forecaster)
+        forecaster = load_object(path_forecaster)
     
     pred = forecaster.predict()
     
@@ -271,8 +268,12 @@ def run(argv = None):
         description= "interactive forecasting"
     )
     
+    port = os.environ.get("GRADIO_SERVER_PORT", 7860)
+    port = int(port)
+
     app.launch(
-    enable_queue=True,
+    server_name= "0.0.0.0",
+    server_port=port,
     share=False)
 
 
