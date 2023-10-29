@@ -20,6 +20,12 @@ class Sector(Enum):
     Provincia = "Provincia"
     Comuna = "Comuna"
 
+class TypePrediction(Enum):
+    Origin = "Origin"
+    Destiny = "Destiny"
+    OriginDestiny = "Origin and Destiny"
+
+
 def load_data(path:str = "./data/trips.csv") -> pd.DataFrame:
     """load trips.csv data from path"""
     
@@ -168,7 +174,8 @@ def create_plot(
     pred: pd.DataFrame,
     # pred_inter: pd.DataFrame,
     sector_origin: int | None = 1,
-    sector_destiny: int | None = 1):
+    sector_destiny: int | None = 1,
+    type_prediction: str = "Origin and Destiny"):
     
     def to_series(data: pd.DataFrame, sector_origin:int, sector_destiny:int, is_multi = False) -> pd.DataFrame:
         df = data.reset_index().copy()
@@ -216,13 +223,23 @@ def load_object(path: str):
         return pkl.load(file)
 
 
+
+
 def run(argv = None):
     
+    path_raw = "./data/data_raw.pkl"
     path_preprocessed = "./data/data_preprocessed.pkl"
     path_forecaster = "./data/forecaster.pkl"
     
-    if not os.path.exists(path_preprocessed):
+    
+    if not os.path.exists(path_raw):
         data = load_data()
+        # save_object(data, path_raw)
+    
+    else:
+        data = load_object(path_raw)
+    
+    if not os.path.exists(path_preprocessed):
         data_preprocessed = preprocess_data(data)
         save_object(data_preprocessed, path_preprocessed)
     else: 
@@ -237,12 +254,14 @@ def run(argv = None):
     
     pred = forecaster.predict()
     
-    def wrapper(sector_origin, sector_destiny):
+    def wrapper(sector_origin, sector_destiny, type_prediction):
         
         sector_origin = int(sector_origin)
         sector_destiny = int(sector_destiny)
         
-        return create_plot(data_preprocessed, pred, sector_origin, sector_destiny)
+        return create_plot(
+            data_preprocessed, pred,
+            sector_origin, sector_destiny, type_prediction)
     
     
     
@@ -252,24 +271,41 @@ def run(argv = None):
         "step": 1
     }
     
-    input_origin = gr.components.Slider(
-        **params_slider, label = "Region origin"
-    )
+
     
-    input_destiny = gr.components.Slider(
-        **params_slider, label= "Region Destiny")
     
-    output_plot = gr.Plot()
+    port = int(os.environ.get("GRADIO_SERVER_PORT", 7860))
     
-    app = gr.Interface(
-        fn = wrapper,
-        inputs = [input_origin, input_destiny],
-        outputs= output_plot,
-        description= "interactive forecasting"
-    )
+    type_choices = ["Total origin", "Total destiny", "Origin and destiny"]
     
-    port = os.environ.get("GRADIO_SERVER_PORT", 7860)
-    port = int(port)
+    with gr.Blocks() as app:
+        
+        input_type = gr.components.Radio(
+            choices= type_choices,
+            value = type_choices[-1],
+            type = "index",
+            label = "Prediction Aggregation")
+        
+        with gr.Tab("Region"):
+            
+            input_origin = gr.components.Slider(
+                **params_slider, label = "Origin"
+            )
+            
+            input_destiny = gr.components.Slider(
+                **params_slider, label= "Destiny")
+        
+            predict_region_btn = gr.Button("Predict region")
+        
+        output_plot = gr.Plot()
+        
+        predict_region_btn.click(
+            fn = wrapper,
+            inputs = [input_origin, input_destiny, input_type],
+            outputs = output_plot,
+            api_name= "predict_region"
+        )
+    
 
     app.launch(
     server_name= "0.0.0.0",
