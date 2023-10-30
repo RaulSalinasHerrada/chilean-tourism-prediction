@@ -21,9 +21,11 @@ class Sector(Enum):
     Comuna = "Comuna"
 
 class TypePrediction(Enum):
-    Origin = "Origin"
-    Destiny = "Destiny"
-    OriginDestiny = "Origin and Destiny"
+    Origin = "Total Origin"
+    Destiny = "Total Destiny"
+    OriginDestiny = "Origin and destiny"
+
+type_choices = [x.value for x in TypePrediction]
 
 
 def load_data(path:str = "./data/trips.csv") -> pd.DataFrame:
@@ -72,9 +74,6 @@ def preprocess_data(data: pd.DataFrame, sector: Sector = Sector.Region) -> pd.Da
     data_long["time_stamp"] = data_long.apply(
         to_date_row,axis = 1)
     
-    # data_long["time_stamp"] = [to_date(year,month) for year,month  in zip(
-    #     data_long["month_value"].values, data_long["Anio "].values)]
-    
     unused_date_cols = ["Anio", "month_name", "month_value"]
     
     data_long.drop(columns= unused_date_cols, inplace=True)
@@ -87,8 +86,8 @@ def preprocess_data(data: pd.DataFrame, sector: Sector = Sector.Region) -> pd.Da
     
     cols = col_sector.copy()
     
-    for l in kv:
-        cols.append(l)
+    for lcol in kv:
+        cols.append(lcol)
     # cols = col_sector.extend(kv)
     
     data_sector = data_long[cols].copy()
@@ -111,26 +110,10 @@ def preprocess_data(data: pd.DataFrame, sector: Sector = Sector.Region) -> pd.Da
     data_agg.rename(columns=renamer, inplace=True)
     data_agg.reset_index(inplace=True)
     
-    # data_agg["sector_origin"] = data_agg["sector_origin"].astype("category")
-    # data_agg["sector_destiny"] = data_agg["sector_destiny"].astype("category")
-    
+
     data_agg.set_index(["sector_origin", "sector_destiny","time_stamp"],inplace=True)
     
-    # data_agg = data_agg.reorder_levels([2,1,0])
-    
     return data_agg
-
-
-# from sktime.registry import all_estimators
-# pd.set_option("display.max_rows", 100)
-
-# hier_forecasters = all_estimators(
-#     "forecaster", as_dataframe=True, return_tags=["scitype:y", "y_inner_mtype"]
-# )
-
-# hier_forecasters = hier_forecasters[(hier_forecasters["y_inner_mtype"] != "pd.Series") & 
-#                                     (hier_forecasters["y_inner_mtype"] != "pd.DataFrame")]
-# hier_forecasters
 
 
 def predict_dataframe(data_agg: pd.DataFrame, h:int = 12, prd:int = 24) -> ThetaForecaster:
@@ -143,6 +126,9 @@ def predict_dataframe(data_agg: pd.DataFrame, h:int = 12, prd:int = 24) -> Theta
     Returns:
         pd.Series: _description_
     """
+    
+    
+    
     
     data_flat = data_agg.reset_index().copy()
     periods = data_flat["time_stamp"].unique()
@@ -175,16 +161,34 @@ def create_plot(
     # pred_inter: pd.DataFrame,
     sector_origin: int | None = 1,
     sector_destiny: int | None = 1,
-    type_prediction: str = "Origin and Destiny"):
+    type_prediction: str = TypePrediction.OriginDestiny.value):
     
-    def to_series(data: pd.DataFrame, sector_origin:int, sector_destiny:int, is_multi = False) -> pd.DataFrame:
+    
+    def to_series(
+        data: pd.DataFrame,
+        is_multi: bool = False) -> pd.DataFrame:
+        
         df = data.reset_index().copy()
-        qry  = "sector_origin == {} & sector_destiny == {}".format(sector_origin, sector_destiny)
+        if type_prediction == TypePrediction.Destiny.value:
+            qry = "sector_destiny == {}".format(sector_destiny)
+        
+        elif type_prediction == TypePrediction.Origin.value:
+            qry = "sector_origin == {}".format(sector_origin)
+        
+        else:
+            qry  = "sector_origin == {} & sector_destiny == {}".format(sector_origin, sector_destiny)
         
         if not is_multi:
             df.query(qry, inplace=True)
         else:
             df = df[(df.iloc[:, 0] == sector_origin) & (df.iloc[:, 1] == sector_destiny)]
+        
+        if type_prediction == TypePrediction.Origin.value:
+            df = df.groupby(["sector_origin", "time_stamp"]).sum(numeric_only= True).reset_index()
+        
+        elif type_prediction == TypePrediction.Destiny.value:
+            df = df.groupby(["sector_destiny", "time_stamp"]).sum(numeric_only=True).reset_index()
+        
         
         drop_cols = ["sector_origin", "sector_destiny"]
         
@@ -192,24 +196,26 @@ def create_plot(
             drop_cols = [(x, "", "") for x in drop_cols]
         
         return df.drop(columns=drop_cols).set_index("time_stamp").squeeze()
-    x = to_series(data_agg, sector_origin, sector_destiny)
-    y = to_series(pred, sector_origin, sector_destiny)
+    
+    
+    x = to_series(data_agg)
+    y = to_series(pred)
+    
+    if type_prediction == TypePrediction.Destiny.value:
+        
+        title = "Total monthly touristic travels to region {}".format(sector_destiny)
 
-    # x_df = data_agg.reset_index().copy()
-    # y_df = pred.reset_index().copy()
-    # p_df = pred_inter.reset_index().copy()
-    # qry = "sector_origin == {} & sector_destiny == {}".format(sector_origin, sector_destiny)
     
-    # x_df.query(qry,inplace=True)
-    # y_df.query(qry, inplace=True)
-    # p_df.query(qry, inplace = True)
+    if type_prediction == TypePrediction.Origin.value:
+        title = "Total monthly touristic travels from region {}".format(sector_origin)
     
-    # x = x_df.drop(columns=["sector_origin", "sector_destiny"]).set_index("time_stamp").squeeze()
-    # y = y_df.drop(columns=["sector_origin", "sector_destiny"]).set_index("time_stamp").squeeze()
     
-    title = "Monthly touristic travels from region {} to region {}".format(
-        sector_origin, sector_destiny)
-    
+    elif type_prediction == TypePrediction.OriginDestiny.value:
+            
+        
+        title = "Monthly touristic travels from region {} to region {}".format(
+            sector_origin, sector_destiny)
+        
     fig, _ = plot_series(x,y,labels=["value", "forecast"],title=title)
     
     return fig
@@ -276,14 +282,14 @@ def run(argv = None):
     
     port = int(os.environ.get("GRADIO_SERVER_PORT", 7860))
     
-    type_choices = ["Total origin", "Total destiny", "Origin and destiny"]
+    
     
     with gr.Blocks() as app:
         
         input_type = gr.components.Radio(
             choices= type_choices,
             value = type_choices[-1],
-            type = "index",
+            type = "value",
             label = "Prediction Aggregation")
         
         with gr.Tab("Region"):
