@@ -5,7 +5,6 @@ from sktime.forecasting.base import ForecastingHorizon
 from sktime.utils.plotting import plot_series
 
 import matplotlib
-import matplotlib.pyplot as plt
 
 import gradio as gr
 from enum import Enum
@@ -21,12 +20,11 @@ class Sector(Enum):
     Comuna = "Comuna"
 
 class TypePrediction(Enum):
-    Origin = "Total Origin"
+    Origin  = "Total Origin"
     Destiny = "Total Destiny"
-    OriginDestiny = "Origin and destiny"
+    OriginDestiny = "Origin and Destiny"
 
 type_choices = [x.value for x in TypePrediction]
-
 
 def load_data(path:str = "./data/trips.csv") -> pd.DataFrame:
     """load trips.csv data from path"""
@@ -36,7 +34,7 @@ def load_data(path:str = "./data/trips.csv") -> pd.DataFrame:
         "sep": ";",
         "decimal": ","
         }
-
+    
     return pd.read_csv(path, **read_params)
 
 def to_date(month: int,year:int):
@@ -51,7 +49,7 @@ def preprocess_data(data: pd.DataFrame, sector: Sector = Sector.Region) -> pd.Da
     """preprocess data, choose sector to get value"""
     
     data.columns = [x.strip() for x in data.columns]
-
+    
     col_melt = list(data.columns[-12:]) #months as cols
     
     mn = "month_name"
@@ -88,7 +86,6 @@ def preprocess_data(data: pd.DataFrame, sector: Sector = Sector.Region) -> pd.Da
     
     for lcol in kv:
         cols.append(lcol)
-    # cols = col_sector.extend(kv)
     
     data_sector = data_long[cols].copy()
     
@@ -97,55 +94,42 @@ def preprocess_data(data: pd.DataFrame, sector: Sector = Sector.Region) -> pd.Da
     data_agg.value = np.int32(data_agg.value.values)
     data_agg.query("value > 0", inplace = True)
     
-    
     data_agg.reset_index(inplace=True)
     data_agg.set_index("time_stamp", inplace=True)
     data_agg = data_agg.to_period("M")
     
     renamer = {
     data_agg.columns[0]: "sector_origin",
-    data_agg.columns[1]: "sector_destiny"
+    data_agg.columns[1]: "sector_destiny",
     }
-
+    
     data_agg.rename(columns=renamer, inplace=True)
     data_agg.reset_index(inplace=True)
     
-
-    data_agg.set_index(["sector_origin", "sector_destiny","time_stamp"],inplace=True)
+    cols_index = ["sector_origin", "sector_destiny", "time_stamp"]
+    
+    data_agg.set_index(cols_index, inplace=True)
     
     return data_agg
 
-
 def predict_dataframe(data_agg: pd.DataFrame, h:int = 12, prd:int = 24) -> ThetaForecaster:
-    """predict dataframe
-
+    """Predict Dataframe
+    
     Args:
         data_grouped (pd.DataFrame): grouped dataframe with values
         h (int, optional): Window to forecast, in months
-
+    
     Returns:
-        pd.Series: _description_
+        ThetaForecaster: 
     """
     
-    
-    
+    cols_index = ["sector_origin", "sector_destiny", "time_stamp"]
     
     data_flat = data_agg.reset_index().copy()
     periods = data_flat["time_stamp"].unique()
     last_2years = periods[-prd:]
     data_flat = data_flat[data_flat["time_stamp"].isin(last_2years)]
-    data_flat.set_index(["sector_origin", "sector_destiny", "time_stamp"], inplace=True)
-    
-    
-    # forecasters = [
-    # # ("TBATS", TBATS(sp = 12)),
-    # ("Theta", ThetaForecaster(sp= 12)),
-    # ("ETS", AutoETS(sp = 12))
-    # ]
-    
-    
-    # forecaster = AutoEnsembleForecaster(   
-    #     forecasters=forecasters, test_size= 0.15)
+    data_flat.set_index(cols_index, inplace=True)
     
     forecaster = ThetaForecaster(sp=12)
     
@@ -153,7 +137,6 @@ def predict_dataframe(data_agg: pd.DataFrame, h:int = 12, prd:int = 24) -> Theta
     
     forecaster = forecaster.fit(y = data_flat, fh=fh)
     return forecaster
-    
 
 def create_plot(
     data_agg: pd.DataFrame,
@@ -189,7 +172,6 @@ def create_plot(
         elif type_prediction == TypePrediction.Destiny.value:
             df = df.groupby(["sector_destiny", "time_stamp"]).sum(numeric_only=True).reset_index()
         
-        
         drop_cols = ["sector_origin", "sector_destiny"]
         
         if is_multi:
@@ -197,21 +179,17 @@ def create_plot(
         
         return df.drop(columns=drop_cols).set_index("time_stamp").squeeze()
     
-    
     x = to_series(data_agg)
     y = to_series(pred)
     
     if type_prediction == TypePrediction.Destiny.value:
         
         title = "Total monthly touristic travels to region {}".format(sector_destiny)
-
     
     if type_prediction == TypePrediction.Origin.value:
         title = "Total monthly touristic travels from region {}".format(sector_origin)
     
-    
     elif type_prediction == TypePrediction.OriginDestiny.value:
-            
         
         title = "Monthly touristic travels from region {} to region {}".format(
             sector_origin, sector_destiny)
@@ -228,24 +206,20 @@ def load_object(path: str):
     with open(path, "rb") as file:
         return pkl.load(file)
 
-
-
-
 def run(argv = None):
     
     path_raw = "./data/data_raw.pkl"
     path_preprocessed = "./data/data_preprocessed.pkl"
     path_forecaster = "./data/forecaster.pkl"
     
-    
     if not os.path.exists(path_raw):
-        data = load_data()
-        # save_object(data, path_raw)
+        pass
     
     else:
         data = load_object(path_raw)
     
     if not os.path.exists(path_preprocessed):
+        data = load_data()
         data_preprocessed = preprocess_data(data)
         save_object(data_preprocessed, path_preprocessed)
     else: 
@@ -269,28 +243,21 @@ def run(argv = None):
             data_preprocessed, pred,
             sector_origin, sector_destiny, type_prediction)
     
-    
-    
     params_slider = {
         "minimum": 1,
         "maximum": 16,
         "step": 1
     }
     
-
-    
-    
     port = int(os.environ.get("GRADIO_SERVER_PORT", 7860))
-    
-    
     
     with gr.Blocks() as app:
         
         input_type = gr.components.Radio(
-            choices= type_choices,
-            value = type_choices[-1],
-            type = "value",
-            label = "Prediction Aggregation")
+            choices = type_choices,
+            value   = type_choices[-1],
+            type    = "value",
+            label   = "Prediction Aggregation")
         
         with gr.Tab("Region"):
             
@@ -309,16 +276,13 @@ def run(argv = None):
             fn = wrapper,
             inputs = [input_origin, input_destiny, input_type],
             outputs = output_plot,
-            api_name= "predict_region"
+            api_name= "predict_region",
         )
     
-
     app.launch(
     server_name= "0.0.0.0",
     server_port=port,
     share=False)
 
-
 if __name__ == "__main__":
     run()
-
