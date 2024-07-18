@@ -23,6 +23,19 @@ class TypePrediction(Enum):
         for type_prediction in TypePrediction:
             if value == type_prediction.value:
                 return type_prediction
-        
         raise ValueError("Bad value on Type Prediction enum")
+    
+    @classmethod
+    def from_sectors(cls, origin, destiny):
+        
+        if origin is not None and destiny is not None:
+            return TypePrediction.OriginDestiny
+        
+        if origin is None:
+            return TypePrediction.Destiny
+        
+        if destiny is None:
+            return TypePrediction.Origin
+        
+        raise ValueError("origin and destiny can't be both none")
 

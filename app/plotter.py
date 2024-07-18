@@ -27,8 +27,11 @@ class Plotter(object):
     
     def create_plot(self) -> Figure:
         
-        x = self.to_series_plot(self.data_agg)
-        y = self.to_series_plot(self.pred)
+        # x = self.to_series_plot(self.data_agg)
+        # y = self.to_series_plot(self.pred)
+        
+        x = self.data_agg
+        y = self.pred
         
         type_prediction = self.type_prediction
         sector_destiny = self.sector_destiny

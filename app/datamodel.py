@@ -4,22 +4,36 @@ from pandas import DataFrame
 from typing import Self
 import pandas as pd
 import numpy as np
-from enums import Sector
+from enums import Sector, TypePrediction
 
 @dataclass
 class DataTourism(object):
     
     data: DataFrame
+    
+    sector_origin: int | None
+    sector_destiny: int | None
     sector: Sector = field(default= Sector.Region)
+    training_data: pd.Series = field(init = False)
     
     def __post_init__(self):
-        self.data = self._preprocess_data(self.data)
+        self.train = self._preprocess_data(
+            self.data, self.sector_origin, self.sector_destiny)
     
     @classmethod
-    def from_path(cls, path: str, sector = Sector.Region) -> Self:
+    def from_path(
+        cls: Self, path: str,
+        sector_origin: int | None,
+        sector_destiny: int | None,
+        sector = Sector.Region,
+        ) -> Self:
         
         data = cls._load_data(path)
-        return cls(data=data, sector = sector)
+        return cls(
+            data=data,
+            sector = sector,
+            sector_origin = sector_origin,
+            sector_destiny = sector_destiny)
     @staticmethod
     def _load_data(path) -> DataFrame:
 
@@ -38,9 +52,41 @@ class DataTourism(object):
     def _preprocess_data(
         cls, 
         data: pd.DataFrame,
-        sector: Sector = Sector.Region) -> pd.DataFrame:
-    
+        sector_origin: int  | None ,
+        sector_destiny: int | None,
+        sector: Sector = Sector.Region,
+        ) -> pd.DataFrame:
+
+        type_prediction = TypePrediction.from_sectors(
+            sector_origin, sector_destiny)
+        
         data.columns = [x.strip() for x in data.columns]
+        sector_name = sector.name
+        
+        col_sector = [x for x in data.columns if f"CUT {sector_name}" in x] 
+        
+        
+        renamer = {
+        col_sector[0]: "sector_origin",
+        col_sector[1]: "sector_destiny",
+        }
+
+
+        data.rename(columns=renamer, inplace=True)
+        
+        slice_query: str
+        
+        if type_prediction == TypePrediction.Destiny.value:
+            slice_query = "sector_destiny == {}".format(sector_destiny)
+        
+        elif type_prediction == TypePrediction.Origin.value:
+            slice_query = "sector_origin == {}".format(sector_origin)
+        
+        else:
+            slice_query  = "sector_origin == {} & sector_destiny == {}".format(sector_origin, sector_destiny)        
+        
+        data.query(slice_query, inplace=True)
+
         
         col_melt = list(data.columns[-12:]) #months as cols
         col_maintain = list(data.columns[:-12])
@@ -68,47 +114,32 @@ class DataTourism(object):
         
         
         data_long["time_stamp"] = data_long.apply(
-            to_date_row,axis = 1)
+            to_date_row, axis = 1)
         
         unused_date_cols = ["Anio", "month_name", "month_value"]
         
         data_long.drop(columns= unused_date_cols, inplace=True)
+                
+        time_value = ["time_stamp", "value"]
         
-        sector_name = sector.name
         
-        cut_sector = ["CUT {} Origen", "CUT {} Destino"]
-        
-        col_sector = [x.format(sector_name) for x in cut_sector]
-        kv = ["time_stamp", "value"]
-        
-        cols = col_sector.copy()
-        
-        for lcol in kv:
-            cols.append(lcol)
+        cols = ["sector_origin", "sector_destiny"]
+        cols.extend(time_value)
         
         data_sector = data_long[cols].copy()
         
-        col_sector.append("time_stamp")
-        data_agg = data_sector.groupby(by = col_sector).sum()
-        data_agg.value = np.int32(data_agg.value.values)
-        data_agg.query("value > 0", inplace = True)
         
+        
+        data_agg = data_sector.groupby(by = "time_stamp").sum()
+        
+        data_agg.value = np.int32(data_agg.value.values)
         data_agg.reset_index(inplace=True)
+        
+        data_agg.query("value > 0", inplace=True)
         data_agg.set_index("time_stamp", inplace=True)
         data_agg = data_agg.to_period("M")
         
-        renamer = {
-        data_agg.columns[0]: "sector_origin",
-        data_agg.columns[1]: "sector_destiny",
-
-        }
+        print(data_agg["value"].to_string())
         
-        data_agg.rename(columns=renamer, inplace=True)
-        data_agg.reset_index(inplace=True)
-        
-        cols_index = ["sector_origin", "sector_destiny", "time_stamp"]
-        
-        data_agg.set_index(cols_index, inplace=True)
-        
-        return data_agg
+        return data_agg["value"]
 

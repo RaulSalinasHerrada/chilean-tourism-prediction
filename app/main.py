@@ -16,6 +16,10 @@ def pipeline(sector_origin: int,
     input_type: str
     ):
     
+    sector_origin = int(sector_origin)
+    sector_destiny = int(sector_destiny)
+    
+    
     type_prediction = TypePrediction.from_value(input_type)
     
     if type_prediction == TypePrediction.Origin:
@@ -26,7 +30,11 @@ def pipeline(sector_origin: int,
     
     
     data_path = "./data/trips.csv"
-    data_tourism = DataTourism.from_path(data_path)
+    data_tourism = DataTourism.from_path(
+        path = data_path,
+        sector_origin = sector_origin,
+        sector_destiny = sector_destiny)
+    
     forecaster = Forecaster(data_tourism = data_tourism)
     plotter = Plotter(forecaster, sector_destiny, sector_origin)
     
