@@ -39,3 +39,29 @@ class TypePrediction(Enum):
         
         raise ValueError("origin and destiny can't be both none")
 
+class Horizon(Enum):
+    Months3 = 3
+    Months6 = 6
+    Months9 = 9
+    Months12 = 12
+
+    def to_str(self):
+        return f"{self.value} months"
+    
+    @classmethod
+    def choices(cls):
+        return [ x.to_str() for x in cls]
+        
+    @classmethod
+    def default_choice(cls):
+        return cls.Months6.to_str()
+    
+    @classmethod
+    def from_value(cls, value: str):
+            
+        for type_prediction in cls:
+            if value == type_prediction.to_str():
+                return type_prediction
+            
+        raise ValueError("Bad value on Horizon enum")
+    

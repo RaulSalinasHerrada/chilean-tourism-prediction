@@ -7,13 +7,15 @@ import os
 from datamodel import DataTourism
 from predict_model import Forecaster
 from plotter import Plotter
-from enums import TypePrediction
+from enums import TypePrediction, Horizon
 
 matplotlib.use("Agg")
 
 def pipeline(sector_origin: int,
     sector_destiny: int,
-    input_type: str
+    input_type: str,
+    horizon_type: str,
+    
     ):
     
     sector_origin = int(sector_origin)
@@ -21,6 +23,7 @@ def pipeline(sector_origin: int,
     
     
     type_prediction = TypePrediction.from_value(input_type)
+    type_horizon = Horizon.from_value(horizon_type)
     
     if type_prediction == TypePrediction.Origin:
         sector_destiny = None
@@ -35,7 +38,10 @@ def pipeline(sector_origin: int,
         sector_origin = sector_origin,
         sector_destiny = sector_destiny)
     
-    forecaster = Forecaster(data_tourism = data_tourism)
+    forecaster = Forecaster(
+        data_tourism = data_tourism,
+        h = type_horizon.value)
+    
     plotter = Plotter(
         forecaster,
         type_prediction,
@@ -56,6 +62,7 @@ def run(argv = None):
     port = int(os.environ.get("GRADIO_SERVER_PORT", 7860))
     
     type_choices = TypePrediction.choices()
+    horizon_choices = Horizon.choices()
     
     with gr.Blocks() as app:
         
@@ -63,8 +70,14 @@ def run(argv = None):
             choices = type_choices,
             value   = type_choices[-1],
             type    = "value",
-            label   = "Prediction Aggregation")
+            label   = "Type of model prediction")
         
+        horizon_type = gr.components.Radio(
+            choices= horizon_choices,
+            value = Horizon.default_choice(),
+            type = "value",
+            label = "Forecast Horizon"
+        )
         with gr.Tab("Region"):
             
             input_origin = gr.components.Slider(
@@ -80,7 +93,7 @@ def run(argv = None):
         
         predict_region_btn.click(
             fn = pipeline,
-            inputs = [input_origin, input_destiny, input_type],
+            inputs = [input_origin, input_destiny, input_type, horizon_type],
             outputs = output_plot,
             api_name= "predict_region",
         )
