@@ -16,16 +16,17 @@ class Forecaster(object):
     h: int = field(default=12)
     prd: int = field(default=24)
     
-    training_data: Series = field(init=False)
+    training_series: Series = field(init=False)
+    forecast_series: DataFrame = field(init=False)
+
     forecaster: ThetaForecaster = field(init=False)
-    forecast_data: DataFrame = field(init=False)
     
     
     def __post_init__(self):
         
-        self.training_data = self._filter_old(self.data_tourism.data)
-        self.forecaster = self._fit_forecaster(self.training_data)
-        self.forecast_data = self.forecast
+        self.training_series = self._filter_old(self.data_tourism.data)
+        self.forecaster = self._fit_forecaster(self.training_series)
+        self.forecast_series = self.forecast
     
     @property
     def sector(self):
@@ -41,24 +42,27 @@ class Forecaster(object):
     
     @property
     def forecast(self):        
-        if self.forecaster.is_fitted:    
-            return self.forecaster.predict()
+        if self.forecaster.is_fitted:
+            
+            pred_data = self.forecaster.predict()
+            print("data_predicted", pred_data)    
+            return pred_data
         
         raise NotFittedError("Model has not been fitted")
     
     def _filter_old(self, training_data: Series):
 
+        print("training_data", training_data)
         training_data.sort_index(inplace=True)
-        
-        
         
         return training_data
     
     def _fit_forecaster(self, training_data: Series) -> ThetaForecaster:
         
-        vals = training_data.values
-        print(vals)
-        forecaster = ThetaForecaster(sp=self.h).fit(vals, self.horizon)
+        forecaster = ThetaForecaster(
+            sp=self.h).fit(
+                y = training_data,
+                fh = self.horizon)
         return forecaster
     
     @classmethod

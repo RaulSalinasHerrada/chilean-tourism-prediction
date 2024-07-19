@@ -10,14 +10,12 @@ from enums import Sector, TypePrediction
 class DataTourism(object):
     
     data: DataFrame
-    
     sector_origin: int | None
     sector_destiny: int | None
     sector: Sector = field(default= Sector.Region)
-    training_data: pd.Series = field(init = False)
     
     def __post_init__(self):
-        self.train = self._preprocess_data(
+        self.data = self._preprocess_data(
             self.data, self.sector_origin, self.sector_destiny)
     
     @classmethod
@@ -29,11 +27,13 @@ class DataTourism(object):
         ) -> Self:
         
         data = cls._load_data(path)
+        
         return cls(
             data=data,
-            sector = sector,
             sector_origin = sector_origin,
-            sector_destiny = sector_destiny)
+            sector_destiny = sector_destiny,
+            sector = sector)
+        
     @staticmethod
     def _load_data(path) -> DataFrame:
 
@@ -139,7 +139,7 @@ class DataTourism(object):
         data_agg.set_index("time_stamp", inplace=True)
         data_agg = data_agg.to_period("M")
         
-        print(data_agg["value"].to_string())
+        print("time series", data_agg["value"].to_string())
         
         return data_agg["value"]
 

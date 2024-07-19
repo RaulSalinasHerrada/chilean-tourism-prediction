@@ -36,7 +36,11 @@ def pipeline(sector_origin: int,
         sector_destiny = sector_destiny)
     
     forecaster = Forecaster(data_tourism = data_tourism)
-    plotter = Plotter(forecaster, sector_destiny, sector_origin)
+    plotter = Plotter(
+        forecaster,
+        type_prediction,
+        sector_destiny,
+        sector_origin)
     
     return plotter.create_plot()
 
