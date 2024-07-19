@@ -18,7 +18,6 @@ class Forecaster(object):
     
     training_series: Series = field(init=False)
     forecast_series: DataFrame = field(init=False)
-
     forecaster: ThetaForecaster = field(init=False)
     
     
