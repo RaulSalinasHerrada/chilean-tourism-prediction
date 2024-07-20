@@ -1,6 +1,5 @@
-from enums import TypePrediction
+from enums import TypePrediction, Sector
 from predict_model import Forecaster
-import pandas as pd
 from sktime.utils.plotting import plot_series
 from matplotlib.figure import Figure
 from dataclasses import dataclass
@@ -9,7 +8,7 @@ from dataclasses import dataclass
 class Plotter(object):
     forecaster: Forecaster
     type_prediction: TypePrediction
-
+    sector: Sector
     sector_destiny: int | None
     sector_origin: int | None
     
@@ -20,6 +19,10 @@ class Plotter(object):
     @property
     def training_series(self):
         return self.forecaster.training_series
+    
+    @property
+    def forecast_series_interval(self):
+        return self.forecast_series_interval
     
     @property
     def forecast_series(self):
@@ -36,20 +39,22 @@ class Plotter(object):
         type_prediction = self.type_prediction
         sector_destiny = self.sector_destiny
         sector_origin = self.sector_origin
+        sector_type = self.sector.value
+        
         
         if type_prediction == TypePrediction.Destiny:
             
-            title = "Total monthly touristic travels to region {}".format(sector_destiny)
+            title = f"Total monthly touristic travels to {sector_type} {sector_destiny}"
         
         if type_prediction == TypePrediction.Origin:
-            title = "Total monthly touristic travels from region {}".format(sector_origin)
+            title = f"Total monthly touristic travels from {sector_type} {sector_origin}"
         
         elif type_prediction == TypePrediction.OriginDestiny:
             
-            title = "Monthly touristic travels from region {} to region {}".format(
+            title = f"Monthly touristic travels from {sector_type} {sector_origin} to {sector_type} {sector_destiny}".format(
                 sector_origin, sector_destiny)
             
-        fig, _ = plot_series(x,y,labels=["value", "forecast"],title=title)
+        fig, _ = plot_series(x,y,labels=["value", "forecast"],title=title,)
         
         return fig
     

@@ -7,7 +7,7 @@ import os
 from datamodel import DataTourism
 from predict_model import Forecaster
 from plotter import Plotter
-from enums import TypePrediction, Horizon
+from enums import TypePrediction, Horizon, Sector
 
 matplotlib.use("nbAgg")
 
@@ -22,7 +22,7 @@ def pipeline(sector_origin: int,
     
     sector_origin = int(sector_origin)
     sector_destiny = int(sector_destiny)
-    
+    sector = Sector.Region
     
     type_prediction = TypePrediction.from_value(input_type)
     type_horizon = Horizon.from_value(horizon_type)
@@ -45,10 +45,11 @@ def pipeline(sector_origin: int,
         h = type_horizon.value)
     
     plotter = Plotter(
-        forecaster,
-        type_prediction,
-        sector_destiny,
-        sector_origin)
+        forecaster= forecaster,
+        type_prediction= type_prediction,
+        sector= sector,
+        sector_destiny=sector_destiny,
+        sector_origin=sector_origin)
     
     return plotter.create_plot()
 
@@ -61,7 +62,7 @@ def run(argv = None):
         "step": 1
     }
     
-    port = int(os.environ.get("GRADIO_SERVER_PORT", 7860))
+    port = int(os.environ.get("GRADIO_SERVER_PORT", 7861))
     
     type_choices = TypePrediction.choices()
     horizon_choices = Horizon.choices()
@@ -91,7 +92,7 @@ def run(argv = None):
         
             predict_region_btn = gr.Button("Forecast")
         
-        output_plot = gr.Plot()
+        output_plot = gr.Plot(scale= 2)
         
         predict_region_btn.click(
             fn = pipeline,
@@ -103,6 +104,7 @@ def run(argv = None):
     app.launch(
     server_name= "0.0.0.0", # for using on make up
     server_port=port,
+    favicon_path= "./favicon.ico",
     share=False)
 
 if __name__ == "__main__":

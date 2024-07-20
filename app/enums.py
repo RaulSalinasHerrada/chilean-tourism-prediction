@@ -2,8 +2,8 @@ from enum import Enum
 
 class Sector(Enum):
     Region = "Region"
-    Provincia = "Provincia"
-    Comuna = "Comuna"
+    Province = "Province"
+    Commune = "Commune"
     
     @classmethod
     def choices(cls):
