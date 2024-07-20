@@ -23,7 +23,7 @@ class Forecaster(object):
     
     def __post_init__(self):
         
-        self.training_series = self._filter_old(self.data_tourism.data)
+        self.training_series = self._filter_old(self.data_tourism.training_data)
         self.forecaster = self._fit_forecaster(self.training_series)
         self.forecast_series = self.forecast
     

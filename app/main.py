@@ -9,7 +9,9 @@ from predict_model import Forecaster
 from plotter import Plotter
 from enums import TypePrediction, Horizon
 
-matplotlib.use("Agg")
+matplotlib.use("nbAgg")
+
+# matplotlib.use("Agg")
 
 def pipeline(sector_origin: int,
     sector_destiny: int,
