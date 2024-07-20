@@ -4,20 +4,17 @@ import matplotlib
 import gradio as gr
 import os
 
-from datamodel import DataTourism
-from predict_model import Forecaster
-from plotter import Plotter
-from enums import TypePrediction, Horizon, Sector
+from src.datamodel import DataTourism
+from src.predict_model import Forecaster
+from src.plotter import Plotter
+from src.enums import TypePrediction, Horizon, Sector
 
-matplotlib.use("nbAgg")
-
-# matplotlib.use("Agg")
+matplotlib.use("Agg")
 
 def pipeline(sector_origin: int,
     sector_destiny: int,
     input_type: str,
     horizon_type: str,
-    
     ):
     
     sector_origin = int(sector_origin)
@@ -34,7 +31,8 @@ def pipeline(sector_origin: int,
         sector_origin = None
     
     
-    data_path = "./data/trips.csv"
+    data_path = "./data/trips.parquet"
+    
     data_tourism = DataTourism.from_path(
         path = data_path,
         sector_origin = sector_origin,
@@ -56,27 +54,25 @@ def pipeline(sector_origin: int,
 
 def run(argv = None):
     
+    port = int(os.environ.get("GRADIO_SERVER_PORT", 7861))
+    
     params_slider = {
         "minimum": 1,
         "maximum": 16,
         "step": 1
     }
     
-    port = int(os.environ.get("GRADIO_SERVER_PORT", 7861))
-    
-    type_choices = TypePrediction.choices()
-    horizon_choices = Horizon.choices()
-    
     with gr.Blocks() as app:
         
+        
         input_type = gr.components.Radio(
-            choices = type_choices,
-            value   = type_choices[-1],
+            choices = TypePrediction.choices(),
+            value   = TypePrediction.default_choice(),
             type    = "value",
             label   = "Type of model prediction")
         
         horizon_type = gr.components.Radio(
-            choices= horizon_choices,
+            choices= Horizon.choices(),
             value = Horizon.default_choice(),
             type = "value",
             label = "Forecast Horizon"
@@ -92,7 +88,8 @@ def run(argv = None):
         
             predict_region_btn = gr.Button("Forecast")
         
-        output_plot = gr.Plot(scale= 2)
+        
+        output_plot = gr.Plot()
         
         predict_region_btn.click(
             fn = pipeline,
@@ -104,7 +101,7 @@ def run(argv = None):
     app.launch(
     server_name= "0.0.0.0", # for using on make up
     server_port=port,
-    favicon_path= "./favicon.ico",
+    favicon_path= "favicon.ico",
     share=False)
 
 if __name__ == "__main__":

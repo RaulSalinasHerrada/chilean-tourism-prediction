@@ -1,7 +1,5 @@
 gradio==4.38.1
 matplotlib==3.8.0
-numpy==1.26.1
-pandas==2.1.1
-sktime==0.24.0
-statsmodels==0.14.0
-seaborn==0.13.0
+numpy==2.0.0
+pandas==2.2.2
+sktime==0.31.0
