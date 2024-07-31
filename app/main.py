@@ -4,53 +4,9 @@ import matplotlib
 import gradio as gr
 import os
 
-from src.datamodel import DataTourism
-from src.predict_model import Forecaster
-from src.plotter import Plotter
-from src.enums import TypePrediction, Horizon, Sector
-
+from src.run import pipeline
+from src.enums import TypePrediction, Horizon
 matplotlib.use("Agg")
-
-def pipeline(sector_origin: int,
-    sector_destiny: int,
-    input_type: str,
-    horizon_type: str,
-    ):
-    
-    sector_origin = int(sector_origin)
-    sector_destiny = int(sector_destiny)
-    sector = Sector.Region
-    
-    type_prediction = TypePrediction.from_value(input_type)
-    type_horizon = Horizon.from_value(horizon_type)
-    
-    if type_prediction == TypePrediction.Origin:
-        sector_destiny = None
-    
-    if type_prediction == TypePrediction.Destiny:
-        sector_origin = None
-    
-    
-    data_path = "./data/trips.parquet"
-    
-    data_tourism = DataTourism.from_path(
-        path = data_path,
-        sector_origin = sector_origin,
-        sector_destiny = sector_destiny)
-    
-    forecaster = Forecaster(
-        data_tourism = data_tourism,
-        h = type_horizon.value)
-    
-    plotter = Plotter(
-        forecaster= forecaster,
-        type_prediction= type_prediction,
-        sector= sector,
-        sector_destiny=sector_destiny,
-        sector_origin=sector_origin)
-    
-    return plotter.create_plot()
-
 
 def run(argv = None):
     
