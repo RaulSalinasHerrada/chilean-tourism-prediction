@@ -10,7 +10,7 @@ matplotlib.use("Agg")
 
 def run(argv = None):
     
-    port = int(os.environ.get("GRADIO_SERVER_PORT", 7861))
+    port = int(os.environ.get("GRADIO_SERVER_PORT", 7860))
     
     params_slider = {
         "minimum": 1,

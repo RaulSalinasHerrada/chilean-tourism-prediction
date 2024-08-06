@@ -12,7 +12,6 @@ class Forecaster(object):
     
     data_tourism: DataTourism
     h: int
-    
     forecast_series: Series = field(init=False)
     forecast_series_interval: DataFrame = field(init=False)
     forecaster: ThetaForecaster = field(init=False)

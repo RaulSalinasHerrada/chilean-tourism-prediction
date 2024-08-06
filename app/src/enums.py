@@ -13,7 +13,6 @@ class Sector(Enum):
     def choices(cls):
         return [x.value for x in cls]
     
-    
 class TypePrediction(Enum):
     Origin  = "Total Origin"
     Destiny = "Total Destiny"
@@ -77,4 +76,3 @@ class Horizon(Enum):
                 return type_prediction
             
         raise ValueError("Bad value on Horizon enum")
-    

@@ -41,7 +41,6 @@ class Plotter(object):
         
         
         if type_prediction == TypePrediction.Destiny:
-            
             title = f"Total monthly touristic travels to {sector_type} {sector_destiny}"
         
         if type_prediction == TypePrediction.Origin:
